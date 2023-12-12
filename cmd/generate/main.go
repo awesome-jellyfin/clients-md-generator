@@ -1,8 +1,8 @@
 package main
 
 import (
-	generator "awesome-jellyfin-clients"
 	"flag"
+	generator "github.com/awesome-jellyfin/clients-md-generator"
 	"io"
 	"os"
 )

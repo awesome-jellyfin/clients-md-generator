@@ -1,4 +1,4 @@
-module awesome-jellyfin-clients
+module github.com/awesome-jellyfin/clients-md-generator
 
 go 1.21
 
