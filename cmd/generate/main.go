@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	// parse clients.yaml file
-	config, err := generator.LoadConfig("clients.yaml")
+	config, err := generator.LoadConfig(inputFile)
 	if err != nil {
 		panic(err)
 	}
