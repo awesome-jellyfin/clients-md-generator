@@ -100,14 +100,14 @@ func PrintClientTableRow(writer io.Writer, client *Client, config *ClientsConfig
 
 	// Append badges
 	if Deref(client.Official) {
-		name += " " + BadgeOfficial
+		name += " ` " + BadgeOfficial + " `"
 	}
 	if Deref(client.Beta) {
-		name += " " + BadgeBeta
+		name += " ` " + BadgeBeta + " `"
 	}
 	for _, t := range client.Types {
 		if t == "Music" {
-			name += " " + ClientTypeMusic
+			name += " ` " + ClientTypeMusic + " `"
 		}
 	}
 
