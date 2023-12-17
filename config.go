@@ -7,12 +7,6 @@ import (
 )
 
 const (
-	// ClientTypeMusic indicates a music-related client type.
-	ClientTypeMusic = "🎵"
-	// BadgeOfficial indicates an official client.
-	BadgeOfficial = "🔹"
-	// BadgeBeta indicates a client in beta.
-	BadgeBeta = "🛠️"
 	// JellyfinOrgURL is the Jellyfin GitHub organization URL.
 	JellyfinOrgURL = "https://github.com/jellyfin/"
 	GoodTrue       = "✅"

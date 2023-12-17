@@ -6,16 +6,13 @@ import (
 	"strings"
 )
 
-// Icon represents configuration for icons that can be used in markdown output.
-type Icon struct {
-	Light  string `yaml:"light"`
-	Dark   string `yaml:"dark"`
-	Single string `yaml:"single"`
-	Text   string `yaml:"text"`
-}
+const (
+	OfficialTypeKey = "Official"
+	BetaTypeKey     = "Beta"
+)
 
 // Markdown generates the markdown string for an icon.
-func (i *Icon) Markdown(url string) string {
+func (i *HosterIcon) Markdown(url string) string {
 	if (i.Dark != "") != (i.Light != "") {
 		panic("use 'single' if only a single icon URL is available")
 	}
@@ -49,7 +46,7 @@ func processClientDownloads(client *Client, config *ClientsConfig) string {
 		if icon, ok := config.Icons[hoster.Icon]; ok && hoster.Icon != "" {
 			sb.WriteString(icon.Markdown(hoster.URL))
 		} else if hoster.IconURL != "" {
-			sb.WriteString((&Icon{Single: hoster.IconURL}).Markdown(hoster.URL))
+			sb.WriteString((&HosterIcon{Single: hoster.IconURL}).Markdown(hoster.URL))
 		} else if hoster.Text != "" {
 			sb.WriteString(fmt.Sprintf("[%s](%s)", hoster.Text, hoster.URL))
 		} else {
@@ -60,23 +57,27 @@ func processClientDownloads(client *Client, config *ClientsConfig) string {
 	return strings.ReplaceAll(sb.String(), "\n", "")
 }
 
-func PrintClientTable(
-	writer io.Writer,
-	has string,
-	identifierClientMap map[string][]*Client,
-	config *ClientsConfig,
-) error {
+func PrintTableHeader(writer io.Writer) error {
 	if _, err := fmt.Fprintln(writer, "| Name | OSS | Free | Paid | Downloads |"); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintln(writer, "| ---- | --- | ---- | ---- | --------- |"); err != nil {
 		return err
 	}
+	return nil
+}
+
+func PrintClientTable(
+	writer io.Writer,
+	has string,
+	identifierClientMap map[string][]*Client,
+	config *ClientsConfig,
+) error {
+	if err := PrintTableHeader(writer); err != nil {
+		return err
+	}
 	for _, client := range identifierClientMap[strings.ToLower(strings.TrimSpace(has))] {
 		if err := PrintClientTableRow(writer, client, config); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintln(writer); err != nil {
 			return err
 		}
 	}
@@ -92,38 +93,65 @@ func PrintClientTableRow(writer io.Writer, client *Client, config *ClientsConfig
 		client.Price.Free = Ref(true) // Default to free if open-source
 	}
 
-	// Set client details
 	name := client.Name
 	oss := Select(client.OpenSourceURL != "", GoodTrue, BadFalse)
 	free := Select(DerefDef(client.Price.Free, false), GoodTrue, BadFalse)
 	paid := Select(DerefDef(client.Price.Paid, false), BadTrue, GoodFalse)
-
-	// Append badges
-	if Deref(client.Official) {
-		name += " ` " + BadgeOfficial + " `"
-	}
-	if Deref(client.Beta) {
-		name += " ` " + BadgeBeta + " `"
-	}
-	for _, t := range client.Types {
-		if t == "Music" {
-			name += " ` " + ClientTypeMusic + " `"
-		}
-	}
-
-	// Determine website URL
 	websiteURL := Select(client.Website != "", client.Website, client.OpenSourceURL)
-
 	downloadsMarkdown := processClientDownloads(client, config)
 
-	_, err := fmt.Fprintf(writer, "| [%s](%s) | %s | %s | %s | %s |", name, websiteURL, oss, free, paid, downloadsMarkdown)
-	return err
+	var badges []string
+	if Deref(client.Official) {
+		addTypeBadge(&badges, OfficialTypeKey, config)
+	}
+	if Deref(client.Beta) {
+		addTypeBadge(&badges, BetaTypeKey, config)
+	}
+	for _, t := range client.Types {
+		addTypeBadge(&badges, t, config)
+	}
+
+	for _, b := range badges {
+		name += fmt.Sprintf(" ` %s `", b)
+	}
+
+	if _, err := fmt.Fprintf(
+		writer,
+		"| [%s](%s) | %s | %s | %s | %s |",
+		name,
+		websiteURL,
+		oss,
+		free,
+		paid,
+		downloadsMarkdown,
+	); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(writer); err != nil {
+		return err
+	}
+	return nil
+}
+
+func addTypeBadge(badges *[]string, key string, config *ClientsConfig) {
+	// find beta type
+	t, ok := config.Types.FindType(key)
+	if !ok {
+		panic("cannot find type with key: " + key)
+	}
+	if t.Badge != "" {
+		*badges = append(*badges, t.Badge)
+	}
 }
 
 func CreateMarkdownDocument(writer io.Writer, config *ClientsConfig) error {
 	// Process clients and create an identifier-client map
 	// e.g. iOS: [Swiftfin, Infuse, ...]
 	targetClientsMap := createIdentifierClientMap(config.Clients)
+
+	if _, err := fmt.Fprint(writer, "# By Environment\n"); err != nil {
+		return err
+	}
 
 	// Generate and print the markdown content
 	for _, target := range config.Targets {
@@ -141,6 +169,67 @@ func CreateMarkdownDocument(writer io.Writer, config *ClientsConfig) error {
 				return err
 			}
 			if _, err := fmt.Fprintln(writer); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Generate Type legend / sections
+	if len(config.Types) > 0 {
+		printHeader := true
+		for _, customType := range config.Types {
+			if !customType.Section {
+				continue
+			}
+			if printHeader {
+				printHeader = false
+
+				if _, err := fmt.Fprint(writer, "\n---\n\n"); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprint(writer, "# By Type\n"); err != nil {
+					return err
+				}
+			}
+			// find all clients with this type
+			printTypeHeader := true
+			for _, client := range config.Clients {
+				// check if client belongs to type
+				belongs := false
+				for _, clientType := range client.Types {
+					if clientType == customType.Key {
+						belongs = true
+						break
+					}
+				}
+				if !belongs {
+					continue
+				}
+				if printTypeHeader {
+					printTypeHeader = false
+
+					if _, err := fmt.Fprintf(writer, "\n## %s\n\n", customType.StringWithBadge()); err != nil {
+						return err
+					}
+
+					if err := PrintTableHeader(writer); err != nil {
+						return err
+					}
+				}
+				if err := PrintClientTableRow(writer, client, config); err != nil {
+					return err
+				}
+			}
+		}
+
+		if _, err := fmt.Fprint(writer, "\n---\n\n"); err != nil {
+			return err
+		}
+		for _, customType := range config.Types {
+			if customType.Badge == "" {
+				continue
+			}
+			if _, err := fmt.Fprintf(writer, "* %s: ` %s `\n", customType.String(), customType.Badge); err != nil {
 				return err
 			}
 		}

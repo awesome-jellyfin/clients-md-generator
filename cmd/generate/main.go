@@ -7,6 +7,12 @@ import (
 	"os"
 )
 
+func checkFileExistsOrPanic(filePath string) {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		panic("File does not exist: " + filePath)
+	}
+}
+
 func main() {
 	var inputFile string
 	flag.StringVar(&inputFile, "input", "clients.yaml", "input file (required)")
@@ -16,12 +22,31 @@ func main() {
 	var outputStdout bool
 	flag.StringVar(&outputFile, "out-file", "", "output file (leave empty for dry run)")
 	flag.BoolVar(&outputStdout, "out-stdout", true, "output to stdout")
+
+	// other
+	var checkIconFiles bool
+	flag.BoolVar(&checkIconFiles, "check-icons", false, "check if icons exist")
 	flag.Parse()
 
 	// parse clients.yaml file
 	config, err := generator.LoadConfig(inputFile)
 	if err != nil {
 		panic(err)
+	}
+
+	// check icon files
+	if checkIconFiles {
+		for _, i := range config.Icons {
+			if i.Dark != "" {
+				checkFileExistsOrPanic(i.Dark)
+			}
+			if i.Light != "" {
+				checkFileExistsOrPanic(i.Light)
+			}
+			if i.Single != "" {
+				checkFileExistsOrPanic(i.Single)
+			}
+		}
 	}
 
 	var writers []io.Writer
