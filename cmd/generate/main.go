@@ -7,12 +7,6 @@ import (
 	"os"
 )
 
-func checkFileExistsOrPanic(filePath string) {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		panic("File does not exist: " + filePath)
-	}
-}
-
 func main() {
 	var inputFile string
 	flag.StringVar(&inputFile, "input", "clients.yaml", "input file (required)")
@@ -34,28 +28,15 @@ func main() {
 		panic(err)
 	}
 
-	// check icon files
-	if checkIconFiles {
-		for _, i := range config.Icons {
-			if i.Dark != "" {
-				checkFileExistsOrPanic(i.Dark)
-			}
-			if i.Light != "" {
-				checkFileExistsOrPanic(i.Light)
-			}
-			if i.Single != "" {
-				checkFileExistsOrPanic(i.Single)
-			}
-		}
-	}
-
 	var writers []io.Writer
 	if outputFile != "" {
 		f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 		if err != nil {
 			panic(err)
 		}
-		defer f.Close()
+		defer func(f *os.File) {
+			_ = f.Close()
+		}(f)
 
 		writers = append(writers, f)
 	}

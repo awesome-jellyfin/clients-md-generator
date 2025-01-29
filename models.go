@@ -8,14 +8,6 @@ type Price struct {
 	Paid *bool `yaml:"paid"`
 }
 
-// Hoster describes the hosting details for client downloads.
-type Hoster struct {
-	Icon    string `yaml:"icon"`
-	IconURL string `yaml:"icon-url"`
-	Text    string `yaml:"text"`
-	URL     string `yaml:"url"`
-}
-
 // Client defines a client application for Jellyfin with its properties.
 type Client struct {
 	Name          string    `yaml:"name"`
@@ -25,7 +17,7 @@ type Client struct {
 	Website       string    `yaml:"website"`
 	OpenSourceURL string    `yaml:"oss"`
 	Price         Price     `yaml:"price"`
-	Downloads     []*Hoster `yaml:"downloads"`
+	Downloads     Downloads `yaml:"downloads"`
 	Types         []string  `yaml:"types"`
 }
 
@@ -39,14 +31,6 @@ type TargetGroup struct {
 	Key     string    `yaml:"key"`
 	Display string    `yaml:"display"`
 	Has     []*Target `yaml:"has"`
-}
-
-// HosterIcon represents configuration for icons that can be used in markdown output.
-type HosterIcon struct {
-	Light  string `yaml:"light"`
-	Dark   string `yaml:"dark"`
-	Single string `yaml:"single"`
-	Text   string `yaml:"text"`
 }
 
 // ClientType represents a client type, such as music or reader clients
@@ -75,10 +59,9 @@ type ClientTypes []*ClientType
 
 // ClientsConfig holds the configuration for all clients.
 type ClientsConfig struct {
-	Clients []*Client              `yaml:"clients"`
-	Targets []*TargetGroup         `yaml:"targets"`
-	Icons   map[string]*HosterIcon `yaml:"icons"`
-	Types   ClientTypes            `yaml:"types"`
+	Clients []*Client      `yaml:"clients"`
+	Targets []*TargetGroup `yaml:"targets"`
+	Types   ClientTypes    `yaml:"types"`
 }
 
 func (t ClientTypes) FindType(key string) (*ClientType, bool) {
