@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	generator "github.com/awesome-jellyfin/clients-md-generator"
 	"io"
 	"os"
+
+	generator "github.com/awesome-jellyfin/clients-md-generator"
 )
 
 func main() {
