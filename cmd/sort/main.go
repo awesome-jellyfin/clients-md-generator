@@ -208,7 +208,7 @@ func main() {
 
 	writer := io.MultiWriter(writers...)
 	for _, l := range output {
-		_, _ = fmt.Fprint(writer, l)
+		_, _ = fmt.Fprintln(writer, l)
 	}
 
 	if failIfChanged {
