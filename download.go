@@ -2,8 +2,9 @@ package generator
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"net/url"
+
+	"gopkg.in/yaml.v3"
 )
 
 var downloadFactories = map[string]func() Download{
@@ -99,6 +100,7 @@ type GitHubDownload struct {
 	Owner string
 	Repo  string
 	URL   string
+	Label string // override the label on the shield
 }
 
 func (g *GitHubDownload) Render() MarkdownRenderer {
@@ -109,13 +111,17 @@ func (g *GitHubDownload) Render() MarkdownRenderer {
 
 	// use the URL if provided, otherwise generate it
 	u := first(g.URL, fmt.Sprintf("https://github.com/%s/%s/releases", g.Owner, g.Repo))
+	label := "GitHub"
+	if g.Label != "" {
+		label = g.Label
+	}
 
 	return &Link{
 		Text: &Image{
 			AltText: NewText("github"),
 			ImageURL: fmt.Sprintf(
-				"https://img.shields.io/github/downloads/%s/%s/total?logo=github&label=GitHub",
-				url.PathEscape(g.Owner), url.PathEscape(g.Repo)),
+				"https://img.shields.io/github/downloads/%s/%s/total?logo=github&label=%s",
+				url.PathEscape(g.Owner), url.PathEscape(g.Repo), url.QueryEscape(label)),
 		},
 		URL: u,
 	}
