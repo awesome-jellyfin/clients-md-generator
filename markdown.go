@@ -58,11 +58,18 @@ func PrintClientTable(
 			downloads.Append(download.Render())
 		}
 
-		builder.AddRow(
-			&Link{
+		var nameElement MarkdownRenderer
+		if websiteURL != "" {
+			nameElement = &Link{
 				Text: nameWithBadges,
 				URL:  websiteURL,
-			},
+			}
+		} else {
+			nameElement = nameWithBadges
+		}
+
+		builder.AddRow(
+			nameElement,
 			NewText(oss),
 			NewText(free),
 			NewText(paid),
